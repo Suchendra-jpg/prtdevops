@@ -1,0 +1,57 @@
+pipeline {
+    agent any
+
+    environment {
+        WEBHOOK_SECRET = credentials('webhookcreds')
+        DOCKER_IMAGE_NAME = 'suchi1998/minikube:latest'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+               sh git clone https://github.com/Suchendra-jpg/prtdevops.git
+                checkout scm
+            }
+        }
+
+        stage('Build and Push Docker Image') {
+            steps {
+                script {
+                    // Build the Docker image
+                    def customImage = docker.build(env.suchi1998/minikube:latest)
+
+                    // Push the Docker image to a container registry if needed
+                    // For Minikube, this step may not be necessary
+                }
+            }
+        }
+
+        stage('GitHub Webhook Validation') {
+            when {
+                expression { currentBuild.rawBuild.getCause(hudson.model.Cause$UpstreamCause) != null }
+            }
+            steps {
+                script {
+                    def secret = env.WEBHOOK_SECRET
+                    def payload = currentBuild.rawBuild.getCause(hudson.model.Cause$UpstreamCause).rawBuild.environment["payload"]
+                    def signature = 'sha256=' + hudson.util.Secret.fromString(payload).toHex()
+
+                    if (signature == secret) {
+                        echo "Webhook signature is valid."
+                    } else {
+                        error "Webhook signature is invalid. Aborting pipeline."
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to Minikube') {
+            steps {
+                
+                script {
+                    sh 'kubectl --context=minikube apply -f kubernetes-deployment.yaml'
+                }
+            }
+        }
+    }
+}
