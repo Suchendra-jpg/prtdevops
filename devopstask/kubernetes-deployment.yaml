@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment-suchendra
+spec:
+  replicas: 3  # Adjust the number of replicas as needed
+  selector:
+    matchLabels:
+      app: your-app-label
+  template:
+    metadata:
+      labels:
+        app: your-app-label
+    spec:
+      containers:
+        - name: your-app-container
+          image: suchi1998/minikube:latest  # Replace with your Docker image name and tag
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nodeport
+spec:
+  selector:
+    app: nginx
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: NodePort          # Use NodePort to expose your service
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nginx
+spec:
+  rules:
+    - host: root # Replace with your desired hostname
+      http:
+        paths:
+          - path: /prt-suchendra
+            pathType: Prefix
+            backend:
+              service:
+                name: custom image
+                port:
+                  number: 80
